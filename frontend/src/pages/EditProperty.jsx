@@ -40,13 +40,14 @@ const EditProperty = () => {
         setLoading(true);
         const property = await propertyApi.getPropertyById(id);
         setFormData({
-          title: property.title,
-          description: property.description,
-          price: property.price,
-          type: property.type,
-          status: property.status,
-          location: property.location,
-          features: property.features,
+          title: property.title || '',
+          description: property.description || '',
+          price: property.price || '',
+          type: property.type || 'house',
+          status: property.status || 'available',
+          location: property.location || { address: '', city: '', state: '', zipCode: '' },
+          features: property.features || { bedrooms: '', bathrooms: '', area: '', parking: false, furnished: false },
+          amenities: property.amenities || [],
           images: [] // Reset images as they need to be re-uploaded
         });
       } catch (err) {
@@ -238,9 +239,9 @@ const EditProperty = () => {
               </label>
               <input
                 type="text"
-                name="address"
+                name="location.address"
                 id="address"
-                value={formData.address}
+                value={formData.location.address}
                 onChange={handleChange}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 ${formErrors.address ? 'border-red-300' : 'border-gray-300'}`}
               />
@@ -291,9 +292,9 @@ const EditProperty = () => {
               </label>
               <input
                 type="number"
-                name="bedrooms"
+                name="features.bedrooms"
                 id="bedrooms"
-                value={formData.bedrooms}
+                value={formData.features.bedrooms}
                 onChange={handleChange}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 ${formErrors.bedrooms ? 'border-red-300' : 'border-gray-300'}`}
               />
@@ -308,9 +309,9 @@ const EditProperty = () => {
               </label>
               <input
                 type="number"
-                name="bathrooms"
+                name="features.bathrooms"
                 id="bathrooms"
-                value={formData.bathrooms}
+                value={formData.features.bathrooms}
                 onChange={handleChange}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 ${formErrors.bathrooms ? 'border-red-300' : 'border-gray-300'}`}
               />
@@ -325,9 +326,9 @@ const EditProperty = () => {
               </label>
               <input
                 type="number"
-                name="area"
+                name="features.area"
                 id="area"
-                value={formData.area}
+                value={formData.features.area}
                 onChange={handleChange}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 ${formErrors.area ? 'border-red-300' : 'border-gray-300'}`}
               />
