@@ -3,14 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { fetchProperties, setFilters } from '../redux/slices/propertySlice';
-
-const BACKEND_URL = 'http://localhost:5000';
-
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath;
-  return `${BACKEND_URL}${imagePath}`;
-};
+import { getImageUrl } from '../utils/imageUrl';
 
 const PropertyList = () => {
   const navigate = useNavigate();

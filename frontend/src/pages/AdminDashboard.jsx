@@ -10,13 +10,7 @@ import {
   deleteUser,
   deleteAdminProperty,
 } from '../redux/slices/adminSlice';
-
-const BACKEND_URL = 'http://localhost:5000';
-
-const getImageUrl = (p) => {
-  if (!p) return null;
-  return p.startsWith('http') ? p : `${BACKEND_URL}${p}`;
-};
+import { getImageUrl } from '../utils/imageUrl';
 
 const statusColors = {
   completed: 'bg-green-100 text-green-800',

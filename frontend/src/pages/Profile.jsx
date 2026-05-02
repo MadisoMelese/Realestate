@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile, uploadProfileImage, changePassword } from '../redux/slices/authSlice';
+import { getImageUrl } from '../utils/imageUrl';
 
 const Profile = () => {
   const dispatch = useDispatch();
@@ -158,9 +159,7 @@ const Profile = () => {
         .toUpperCase()
     : '?';
 
-  const avatarSrc = user?.profileImage
-    ? `http://localhost:5000${user.profileImage}`
-    : null;
+  const avatarSrc = user?.profileImage ? getImageUrl(user.profileImage) : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -3,14 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Menu as MenuIcon, Home as HomeIcon } from '@mui/icons-material';
 import { logout } from '../../redux/slices/authSlice';
-
-const BACKEND_URL = 'http://localhost:5000';
-
-const getAvatarSrc = (profileImage) => {
-  if (!profileImage) return '/default-avatar.png';
-  if (profileImage.startsWith('http')) return profileImage;
-  return `${BACKEND_URL}${profileImage}`;
-};
+import { getAvatarSrc } from '../../utils/imageUrl';
 
 const Navbar = () => {
   const dispatch = useDispatch();

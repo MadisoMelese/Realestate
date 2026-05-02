@@ -35,15 +35,9 @@ import { createTransaction } from '../redux/slices/transactionSlice';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import PaymentForm from '../components/PaymentForm';
+import { getImageUrl } from '../utils/imageUrl';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
-const BACKEND_URL = 'http://localhost:5000';
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath;
-  return `${BACKEND_URL}${imagePath}`;
-};
 
 const PropertyDetails = () => {
   const { id } = useParams();

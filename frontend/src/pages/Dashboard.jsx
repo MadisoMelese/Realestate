@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { fetchProperties } from '../redux/slices/propertySlice';
+import { fetchUserTransactions } from '../redux/slices/transactionSlice';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { transactions } = useSelector((state) => state.transaction);
   const { properties } = useSelector((state) => state.property);
@@ -11,16 +14,29 @@ const Dashboard = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
+      return;
     }
-  }, [isAuthenticated, navigate]);
+    // Fetch fresh data every time dashboard loads
+    dispatch(fetchProperties());
+    dispatch(fetchUserTransactions());
+  }, [isAuthenticated, navigate, dispatch]);
 
-  const userProperties = properties?.filter(property =>
-    user?.role === 'seller' ? property.seller === user._id : property.buyer === user._id
-  ) || [];
+  // user.id comes from login response, user._id comes from /me (getCurrentUser)
+  const userId = user?._id || user?.id;
 
-  const userTransactions = transactions?.filter(transaction =>
-    transaction.buyer === user?._id || transaction.seller === user?._id
-  ) || [];
+  const userProperties = properties?.filter(property => {
+    const ownerId = property.owner?._id || property.owner;
+    return ownerId?.toString() === userId?.toString();
+  }) || [];
+
+  const userTransactions = transactions?.filter(transaction => {
+    const buyerId  = transaction.buyer?._id  || transaction.buyer;
+    const sellerId = transaction.seller?._id || transaction.seller;
+    return (
+      buyerId?.toString()  === userId?.toString() ||
+      sellerId?.toString() === userId?.toString()
+    );
+  }) || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

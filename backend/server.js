@@ -56,7 +56,12 @@ const upload = multer({
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL, /\.vercel\.app$/]
+    : '*',
+  credentials: true
+}));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create uploads directory if it doesn't exist
