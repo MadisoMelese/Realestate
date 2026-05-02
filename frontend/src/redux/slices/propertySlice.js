@@ -132,10 +132,10 @@ const propertySlice = createSlice({
       })
       .addCase(fetchProperties.fulfilled, (state, action) => {
         state.loading = false;
-        state.properties = action.payload.properties;
-        state.totalPages = action.payload.totalPages;
-        state.currentPage = action.payload.currentPage;
-        state.total = action.payload.total;
+        state.properties = action.payload.properties || [];
+        state.totalPages = action.payload.totalPages || 0;
+        state.currentPage = action.payload.currentPage || 1;
+        state.total = action.payload.total || 0;
       })
       .addCase(fetchProperties.rejected, (state, action) => {
         state.loading = false;
