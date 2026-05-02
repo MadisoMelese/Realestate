@@ -4,6 +4,14 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Menu as MenuIcon, Home as HomeIcon } from '@mui/icons-material';
 import { logout } from '../../redux/slices/authSlice';
 
+const BACKEND_URL = 'http://localhost:5000';
+
+const getAvatarSrc = (profileImage) => {
+  if (!profileImage) return '/default-avatar.png';
+  if (profileImage.startsWith('http')) return profileImage;
+  return `${BACKEND_URL}${profileImage}`;
+};
+
 const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -30,6 +38,9 @@ const Navbar = () => {
       : []),
     ...(isAuthenticated
       ? [{ title: 'My Transactions', path: '/transactions' }]
+      : []),
+    ...(isAuthenticated && user?.role === 'admin'
+      ? [{ title: 'Admin', path: '/admin' }]
       : [])
   ];
 
@@ -37,6 +48,7 @@ const Navbar = () => {
     ? [
         { title: 'Dashboard', path: '/dashboard' },
         { title: 'Profile', path: '/profile' },
+        ...(user?.role === 'admin' ? [{ title: 'Admin Dashboard', path: '/admin' }] : []),
         { title: 'Logout', onClick: handleLogout }
       ]
     : [
@@ -109,8 +121,8 @@ const Navbar = () => {
               className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <img
-                className="h-8 w-8 rounded-full"
-                src={user?.profileImage || '/default-avatar.png'}
+                className="h-8 w-8 rounded-full object-cover"
+                src={getAvatarSrc(user?.profileImage)}
                 alt={user?.name || 'User'}
               />
             </button>
