@@ -441,10 +441,9 @@ export const getPropertyById = async (req, res) => {
       });
     }
 
-    // Increment views
+    // Increment views atomically
     try {
-      property.views = (property.views || 0) + 1;
-      await property.save();
+      await Property.findByIdAndUpdate(id, { $inc: { views: 1 } });
     } catch (saveError) {
       console.error("Error updating view count:", saveError);
       // Continue with response even if view count update fails
@@ -471,7 +470,7 @@ export const updateProperty = async (req, res) => {
     }
 
     // Check ownership
-    if (property.owner.toString() !== req.user.id && req.user.role !== "admin") {
+    if (property.owner.toString() !== req.user.userId && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -573,7 +572,7 @@ export const deleteProperty = async (req, res) => {
     }
 
     // Check ownership
-    if (property.owner.toString() !== req.user.id && req.user.role !== "admin") {
+    if (property.owner.toString() !== req.user.userId && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -589,25 +588,27 @@ export const deleteProperty = async (req, res) => {
 // Toggle like property
 export const toggleLikeProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
+    const property = await Property.findById(req.params.id).select('likes');
 
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    const likeIndex = property.likes.indexOf(req.user.userId);
+    const userId = req.user.userId;
+    const alreadyLiked = property.likes.some(id => id.toString() === userId.toString());
 
-    if (likeIndex === -1) {
-      property.likes.push(req.user.userId);
-    } else {
-      property.likes.splice(likeIndex, 1);
-    }
-
-    await property.save();
+    // Use atomic update to avoid version conflicts
+    const updatedProperty = await Property.findByIdAndUpdate(
+      req.params.id,
+      alreadyLiked
+        ? { $pull: { likes: userId } }
+        : { $addToSet: { likes: userId } },
+      { new: true, select: 'likes' }
+    );
 
     res.json({
-      message: likeIndex === -1 ? "Property liked" : "Property unliked",
-      likes: property.likes.length
+      message: alreadyLiked ? "Property unliked" : "Property liked",
+      likes: updatedProperty.likes
     });
   } catch (error) {
     console.error("Toggle like error:", error);
