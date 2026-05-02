@@ -4,6 +4,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { fetchProperties, setFilters } from '../redux/slices/propertySlice';
 
+const BACKEND_URL = 'http://localhost:5000';
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${BACKEND_URL}${imagePath}`;
+};
+
 const PropertyList = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,16 +87,18 @@ const PropertyList = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {properties.map((property) => (
           <div
-            key={property.id}
+            key={property._id}
             className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
           >
-            <div className="aspect-w-16 aspect-h-9 bg-gray-200">
-              {property.images && property.images[0] && (
+            <div className="aspect-w-16 aspect-h-9 bg-gray-200 h-48">
+              {property.images && property.images[0] ? (
                 <img
-                  src={property.images[0]}
+                  src={getImageUrl(property.images[0])}
                   alt={property.title}
                   className="object-cover w-full h-full"
                 />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm">No image</div>
               )}
             </div>
             <div className="p-6 space-y-4">
