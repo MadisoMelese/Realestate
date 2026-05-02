@@ -5,7 +5,8 @@ import mongoose from "mongoose";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import dns from 'node:dns/promises';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -13,6 +14,7 @@ const __dirname = path.dirname(__filename);
 import authRoutes from './routes/auth.js';
 import propertyRoutes from './routes/property.js';
 import transactionRoutes from './routes/transaction.js';
+import apiRoutes from './routes/index.js';
 
 dotenv.config();
 
@@ -82,6 +84,7 @@ app.get("/", (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api', apiRoutes); // admin routes and any future consolidated routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {
