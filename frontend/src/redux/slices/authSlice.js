@@ -58,11 +58,77 @@ export const updateProfile = createAsyncThunk(
   }
 );
 
+export const uploadProfileImage = createAsyncThunk(
+  'auth/uploadProfileImage',
+  async (formData, { getState, rejectWithValue }) => {
+    try {
+      const { token } = getState().auth;
+      const response = await axios.post('/auth/profile/image', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Upload failed' });
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async ({ email }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Request failed' });
+    }
+  }
+);
+
+export const verifyOtp = createAsyncThunk(
+  'auth/verifyOtp',
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/auth/verify-otp', { email, otp });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Verification failed' });
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async ({ resetToken, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/auth/reset-password', { resetToken, newPassword });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Reset failed' });
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async ({ currentPassword, newPassword }, { getState, rejectWithValue }) => {
+    try {
+      const { token } = getState().auth;
+      const response = await axios.put('/auth/change-password', { currentPassword, newPassword }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to change password' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   user: null,
   token: localStorage.getItem('token'),
-  isAuthenticated: false,
+  isAuthenticated: !!localStorage.getItem('token'), // optimistically true if token exists
   loading: false,
   error: null
 };
@@ -131,6 +197,10 @@ const authSlice = createSlice({
       })
       .addCase(getCurrentUser.rejected, (state, action) => {
         state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        localStorage.removeItem('token');
         state.error = action.payload?.message || 'Failed to fetch user';
       })
       // Update profile
@@ -140,12 +210,22 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
+        // Backend returns { message, user } — merge to preserve any fields not returned
+        state.user = { ...state.user, ...action.payload.user };
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Failed to update profile';
-      });
+      })
+      // Upload profile image
+      .addCase(uploadProfileImage.fulfilled, (state, action) => {
+        state.user = { ...state.user, ...action.payload.user };
+      })
+      // forgotPassword, verifyOtp, resetPassword are handled locally in the component
+      // so we don't need global state changes for them
+      .addCase(forgotPassword.rejected, () => {})
+      .addCase(verifyOtp.rejected, () => {})
+      .addCase(resetPassword.rejected, () => {});
   }
 });
 
