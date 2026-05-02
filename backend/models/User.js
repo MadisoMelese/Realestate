@@ -35,7 +35,13 @@ const UserSchema = new mongoose.Schema({
   savedProperties: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Property"
-  }]
+  }],
+  otpHash: {
+    type: String,
+  },
+  otpExpiry: {
+    type: Date,
+  }
 }, {
   timestamps: true
 });
