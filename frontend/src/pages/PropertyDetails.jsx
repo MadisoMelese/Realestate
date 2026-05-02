@@ -15,7 +15,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Alert
+  Alert,
+  IconButton
 } from '@mui/material';
 import {
   LocationOn,
@@ -25,7 +26,9 @@ import {
   LocalParking,
   Weekend,
   Favorite,
-  FavoriteBorder
+  FavoriteBorder,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 import { fetchPropertyById, toggleLikeProperty } from '../redux/slices/propertySlice';
 import { createTransaction } from '../redux/slices/transactionSlice';
@@ -34,6 +37,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import PaymentForm from '../components/PaymentForm';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+const BACKEND_URL = 'http://localhost:5000';
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${BACKEND_URL}${imagePath}`;
+};
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -46,10 +56,16 @@ const PropertyDetails = () => {
 
   const [transactionDialog, setTransactionDialog] = useState(false);
   const [transactionType, setTransactionType] = useState('');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     dispatch(fetchPropertyById(id));
   }, [dispatch, id]);
+
+  // Reset image index when property changes
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [currentProperty?._id]);
 
   const handleLike = () => {
     if (isAuthenticated) {
@@ -76,26 +92,112 @@ const PropertyDetails = () => {
     }));
   };
 
+  const handlePrevImage = () => {
+    setActiveImageIndex((prev) =>
+      prev === 0 ? currentProperty.images.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setActiveImageIndex((prev) =>
+      prev === currentProperty.images.length - 1 ? 0 : prev + 1
+    );
+  };
+
   if (loading) return <Typography>Loading...</Typography>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!currentProperty) return <Typography>Property not found</Typography>;
 
-  const isLiked = currentProperty.likes?.includes(user?._id);
-  const isSeller = user?._id === currentProperty.owner._id;
+  const images = currentProperty.images || [];
+  const hasMultipleImages = images.length > 1;
+
+  const isLiked = Array.isArray(currentProperty.likes) && currentProperty.likes.some(
+    (like) => (like._id || like).toString() === user?._id?.toString()
+  );
+  const isSeller = user?._id?.toString() === currentProperty.owner?._id?.toString();
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
         {/* Property Images */}
         <Grid item xs={12} md={8}>
-          <Card>
+          {/* Main image with prev/next controls */}
+          <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', bgcolor: 'grey.200' }}>
             <CardMedia
               component="img"
-              height="400"
-              image={currentProperty.images[0]}
-              alt={currentProperty.title}
+              image={getImageUrl(images[activeImageIndex])}
+              alt={`${currentProperty.title} - image ${activeImageIndex + 1}`}
+              sx={{ width: '100%', height: 420, objectFit: 'cover', display: 'block' }}
             />
-          </Card>
+
+            {/* Prev / Next buttons — only when multiple images */}
+            {hasMultipleImages && (
+              <>
+                <IconButton
+                  onClick={handlePrevImage}
+                  sx={{
+                    position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                    bgcolor: 'rgba(0,0,0,0.45)', color: 'white',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+                  }}
+                >
+                  <ChevronLeft />
+                </IconButton>
+                <IconButton
+                  onClick={handleNextImage}
+                  sx={{
+                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                    bgcolor: 'rgba(0,0,0,0.45)', color: 'white',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+                  }}
+                >
+                  <ChevronRight />
+                </IconButton>
+
+                {/* Image counter badge */}
+                <Box sx={{
+                  position: 'absolute', bottom: 12, right: 12,
+                  bgcolor: 'rgba(0,0,0,0.55)', color: 'white',
+                  px: 1.5, py: 0.5, borderRadius: 2, fontSize: 13
+                }}>
+                  {activeImageIndex + 1} / {images.length}
+                </Box>
+              </>
+            )}
+          </Box>
+
+          {/* Thumbnail strip — only when multiple images */}
+          {hasMultipleImages && (
+            <Box sx={{ display: 'flex', gap: 1, mt: 1.5, overflowX: 'auto', pb: 0.5 }}>
+              {images.map((img, index) => (
+                <Box
+                  key={index}
+                  onClick={() => setActiveImageIndex(index)}
+                  sx={{
+                    flexShrink: 0,
+                    width: 80,
+                    height: 60,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: index === activeImageIndex
+                      ? '2px solid'
+                      : '2px solid transparent',
+                    borderColor: index === activeImageIndex ? 'primary.main' : 'transparent',
+                    opacity: index === activeImageIndex ? 1 : 0.65,
+                    transition: 'opacity 0.2s, border-color 0.2s',
+                    '&:hover': { opacity: 1 }
+                  }}
+                >
+                  <img
+                    src={getImageUrl(img)}
+                    alt={`Thumbnail ${index + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
         </Grid>
 
         {/* Property Details */}
