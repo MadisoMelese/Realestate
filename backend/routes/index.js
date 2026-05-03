@@ -23,6 +23,34 @@ router.put("/properties/:id", auth, propertyController.updateProperty);
 router.delete("/properties/:id", auth, propertyController.deleteProperty);
 router.post("/properties/:id/like", auth, propertyController.toggleLikeProperty);
 
+// Toggle save property (adds/removes from user's savedProperties)
+router.post("/properties/:id/save", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('savedProperties');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const propertyId = req.params.id;
+    const alreadySaved = user.savedProperties.some(id => id.toString() === propertyId);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      alreadySaved
+        ? { $pull: { savedProperties: propertyId } }
+        : { $addToSet: { savedProperties: propertyId } },
+      { new: true, select: 'savedProperties' }
+    );
+
+    res.json({
+      message: alreadySaved ? 'Property unsaved' : 'Property saved',
+      savedProperties: updatedUser.savedProperties,
+      isSaved: !alreadySaved
+    });
+  } catch (error) {
+    console.error('Toggle save error:', error);
+    res.status(500).json({ message: 'Error saving property' });
+  }
+});
+
 // Transaction routes
 router.post("/transactions", auth, transactionController.createTransaction);
 router.put("/transactions/:id/complete", auth, transactionController.completeTransaction);
