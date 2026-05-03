@@ -32,7 +32,7 @@ import {
   BookmarkBorder,
   Bookmark
 } from '@mui/icons-material';
-import { fetchPropertyById, toggleLikeProperty } from '../redux/slices/propertySlice';
+import { fetchPropertyById, toggleLikeProperty, deleteProperty } from '../redux/slices/propertySlice';
 import { toggleSaveProperty } from '../redux/slices/authSlice';
 import { createTransaction } from '../redux/slices/transactionSlice';
 import { Elements } from '@stripe/react-stripe-js';
@@ -111,7 +111,9 @@ const PropertyDetails = () => {
   const isLiked = Array.isArray(currentProperty.likes) && currentProperty.likes.some(
     (like) => (like._id || like).toString() === user?._id?.toString()
   );
-  const isSeller = user?._id?.toString() === currentProperty.owner?._id?.toString();
+  const isAdmin = user?.role === 'admin';
+  const isOwner = user?._id?.toString() === currentProperty.owner?._id?.toString();
+  const canManage = isOwner || isAdmin; // can edit/delete
 
   const isSaved = Array.isArray(user?.savedProperties) &&
     user.savedProperties.some(id => id?.toString() === currentProperty._id?.toString());
@@ -119,6 +121,16 @@ const PropertyDetails = () => {
   const handleSave = () => {
     if (!isAuthenticated) { navigate('/login'); return; }
     dispatch(toggleSaveProperty(currentProperty._id));
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this property? This cannot be undone.')) return;
+    try {
+      await dispatch(deleteProperty(id)).unwrap();
+      navigate('/properties');
+    } catch {
+      alert('Failed to delete property.');
+    }
   };
 
   return (
@@ -132,7 +144,7 @@ const PropertyDetails = () => {
               component="img"
               image={getImageUrl(images[activeImageIndex])}
               alt={`${currentProperty.title} - image ${activeImageIndex + 1}`}
-              sx={{ width: '100%', height: 420, objectFit: 'cover', display: 'block' }}
+              sx={{ width: '100%', height: { xs: 260, sm: 340, md: 420 }, objectFit: 'cover', display: 'block' }}
             />
 
             {/* Prev / Next buttons — only when multiple images */}
@@ -213,7 +225,7 @@ const PropertyDetails = () => {
               <IconButton onClick={handleLike} color="primary">
                 {isLiked ? <Favorite /> : <FavoriteBorder />}
               </IconButton>
-              {!isSeller && (
+              {!canManage && (
                 <IconButton onClick={handleSave} color="primary" title={isSaved ? 'Unsave' : 'Save'}>
                   {isSaved ? <Bookmark /> : <BookmarkBorder />}
                 </IconButton>
@@ -280,7 +292,8 @@ const PropertyDetails = () => {
             </Grid>
           </Box>
 
-          {!isSeller && currentProperty.status !== 'sold' && currentProperty.status !== 'rented' && (
+          {/* Buy/Rent — only for non-managers on available properties */}
+          {!canManage && currentProperty.status !== 'Sold' && currentProperty.status !== 'Rented' && (
             <Box sx={{ mt: 2 }}>
               <Button
                 variant="contained"
@@ -294,8 +307,16 @@ const PropertyDetails = () => {
             </Box>
           )}
 
-          {isSeller && (
-            <Box sx={{ mt: 2 }}>
+          {/* Edit + Delete — for owner or admin */}
+          {canManage && (
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {isAdmin && !isOwner && (
+                <Box sx={{ mb: 1, px: 1.5, py: 0.75, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
+                  <Typography variant="caption" color="warning.dark">
+                    Admin override — managing on behalf of owner
+                  </Typography>
+                </Box>
+              )}
               <Button
                 variant="outlined"
                 color="primary"
@@ -303,6 +324,14 @@ const PropertyDetails = () => {
                 onClick={() => navigate(`/properties/edit/${id}`)}
               >
                 Edit Property
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                fullWidth
+                onClick={handleDelete}
+              >
+                Delete Property
               </Button>
             </Box>
           )}
