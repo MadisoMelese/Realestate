@@ -29,6 +29,14 @@ const Dashboard = () => {
     return ownerId?.toString() === userId?.toString();
   }) || [];
 
+  // For buyers: show their saved properties from user.savedProperties
+  const savedPropertyIds = new Set(
+    (user?.savedProperties || []).map(id => id?.toString())
+  );
+  const savedProperties = properties?.filter(p =>
+    savedPropertyIds.has(p._id?.toString())
+  ) || [];
+
   const userTransactions = transactions?.filter(transaction => {
     const buyerId  = transaction.buyer?._id  || transaction.buyer;
     const sellerId = transaction.seller?._id || transaction.seller;
@@ -53,9 +61,9 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             {user?.role === 'seller' ? 'My Listed Properties' : 'Saved Properties'}
           </h2>
-          {userProperties.length > 0 ? (
+          {(user?.role === 'seller' ? userProperties : savedProperties).length > 0 ? (
             <div className="space-y-4">
-              {userProperties.map(property => (
+              {(user?.role === 'seller' ? userProperties : savedProperties).map(property => (
                 <div
                   key={property._id}
                   className="border rounded-md p-4 hover:border-primary-500 cursor-pointer"
