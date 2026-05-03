@@ -263,8 +263,8 @@ const Profile = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full Name
