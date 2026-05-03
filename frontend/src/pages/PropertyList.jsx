@@ -69,33 +69,26 @@ const PropertyList = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Search Section */}
-      <div className="mb-8">
-        <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
-          <div className="flex items-center bg-white rounded-lg overflow-hidden shadow-lg">
+      <div className="mb-6">
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+          <div className="flex items-center bg-white rounded-xl overflow-hidden shadow-md border border-gray-200">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by location, property type, or keywords"
-              className="flex-1 px-6 py-4 text-gray-900 placeholder-gray-500 focus:outline-none"
+              placeholder="Search by location, type, or keyword…"
+              className="flex-1 px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none text-sm"
             />
             <button
               type="submit"
-              className="px-6 py-4 bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+              className="px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white transition-colors flex-shrink-0"
             >
-              <SearchIcon />
+              <SearchIcon fontSize="small" />
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Filters Section - TODO: Implement filters */}
-      <div className="mb-8">
-        <div className="flex flex-wrap gap-4">
-          {/* Add filter components here */}
-        </div>
       </div>
 
       {/* Properties Grid */}
@@ -140,28 +133,25 @@ const PropertyList = () => {
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">No image</div>
                 )}
               </div>
-              <div className="p-6 space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900">
+              <div className="p-4 sm:p-5 space-y-3">
+                <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
                   {property.title}
                 </h3>
-                <div className="text-sm text-gray-600">
-                  <p className="mb-2">
-                    {property.location?.city}, {property.location?.state}
-                  </p>
-                  <div className="flex gap-4">
-                    <span>{property.features?.bedrooms || 0} beds</span>
-                    <span>{property.features?.bathrooms || 0} baths</span>
-                    <span>{property.features?.area || 0} sqft</span>
-                  </div>
+                <p className="text-sm text-gray-500">
+                  {property.location?.city}, {property.location?.state}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                  <span>{property.features?.bedrooms || 0} beds</span>
+                  <span>{property.features?.bathrooms || 0} baths</span>
+                  <span>{property.features?.area || 0} sqft</span>
                 </div>
-                <p className="text-gray-600">{property.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-primary-600 font-bold text-xl">
-                    ${property.price?.toLocaleString() || 'Price on request'}
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-primary-600 font-bold text-lg">
+                    ${property.price?.toLocaleString() || 'On request'}
                   </span>
                   <button
                     onClick={() => navigate(`/properties/${property._id}`)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
+                    className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs font-semibold"
                   >
                     View Details
                   </button>
