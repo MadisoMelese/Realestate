@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -21,16 +21,38 @@ const PropertyList = () => {
     const searchParam = params.get('search');
     if (searchParam) {
       setSearchQuery(searchParam);
-      dispatch(setFilters({ search: searchParam }));
+      dispatch(fetchProperties({ search: searchParam }));
+    } else {
+      dispatch(fetchProperties());
     }
-    dispatch(fetchProperties());
   }, [dispatch, location.search]);
+
+  // Debounced live search — fires 400ms after the user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Update URL to reflect current search (keeps browser history clean)
+      const params = new URLSearchParams(location.search);
+      const currentSearch = params.get('search') || '';
+      if (searchQuery !== currentSearch) {
+        navigate(
+          searchQuery.trim()
+            ? `/properties?search=${encodeURIComponent(searchQuery)}`
+            : '/properties',
+          { replace: true }
+        );
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    navigate(`/properties?search=${encodeURIComponent(searchQuery)}`);
-    dispatch(setFilters({ search: searchQuery }));
-    dispatch(fetchProperties());
+    navigate(
+      searchQuery.trim()
+        ? `/properties?search=${encodeURIComponent(searchQuery)}`
+        : '/properties'
+    );
   };
 
   useEffect(() => {
@@ -77,61 +99,78 @@ const PropertyList = () => {
       </div>
 
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {properties.map((property) => (
-          <div
-            key={property._id}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
-          >
-            <div className="aspect-w-16 aspect-h-9 bg-gray-200 h-48">
-              {property.images && property.images[0] ? (
-                <img
-                  src={getImageUrl(property.images[0])}
-                  alt={property.title}
-                  className="object-cover w-full h-full"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400 text-sm">No image</div>
-              )}
-            </div>
-            <div className="p-6 space-y-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                {property.title}
-              </h3>
-              <div className="text-sm text-gray-600">
-                <p className="mb-2">
-                  {property.location?.city}, {property.location?.state}
-                </p>
-                <div className="flex gap-4">
-                  <span>{property.features?.bedrooms || 0} beds</span>
-                  <span>{property.features?.bathrooms || 0} baths</span>
-                  <span>{property.features?.area || 0} sqft</span>
+      {properties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            {searchQuery.trim() ? `No results for "${searchQuery}"` : 'No properties found'}
+          </h3>
+          <p className="text-gray-400 text-sm mb-6">
+            {searchQuery.trim()
+              ? 'Try different keywords, a city name, or a property type.'
+              : 'There are no properties listed yet.'}
+          </p>
+          {searchQuery.trim() && (
+            <button
+              onClick={() => { setSearchQuery(''); navigate('/properties'); }}
+              className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {properties.map((property) => (
+            <div
+              key={property._id}
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+            >
+              <div className="aspect-w-16 aspect-h-9 bg-gray-200 h-48">
+                {property.images && property.images[0] ? (
+                  <img
+                    src={getImageUrl(property.images[0])}
+                    alt={property.title}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">No image</div>
+                )}
+              </div>
+              <div className="p-6 space-y-4">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {property.title}
+                </h3>
+                <div className="text-sm text-gray-600">
+                  <p className="mb-2">
+                    {property.location?.city}, {property.location?.state}
+                  </p>
+                  <div className="flex gap-4">
+                    <span>{property.features?.bedrooms || 0} beds</span>
+                    <span>{property.features?.bathrooms || 0} baths</span>
+                    <span>{property.features?.area || 0} sqft</span>
+                  </div>
+                </div>
+                <p className="text-gray-600">{property.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-primary-600 font-bold text-xl">
+                    ${property.price?.toLocaleString() || 'Price on request'}
+                  </span>
+                  <button
+                    onClick={() => navigate(`/properties/${property._id}`)}
+                    className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
-              <p className="text-gray-600">{property.description}</p>
-              <div className="flex flex-col space-y-2">
-                {property.features?.type && (
-                  <span className="text-sm text-gray-600">Type: {property.features.type}</span>
-                )}
-                {property.features?.status && (
-                  <span className="text-sm text-gray-600">Status: {property.features.status}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-primary-600 font-bold text-xl">
-                  ${property.price?.toLocaleString() || 'Price on request'}
-                </span>
-                <button
-                  onClick={() => navigate(`/properties/${property._id}`)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
-                >
-                  View Details
-                </button>
-              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination - TODO: Implement pagination */}
       <div className="mt-8 flex justify-center">

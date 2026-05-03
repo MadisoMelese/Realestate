@@ -9,7 +9,7 @@ node_modules/
 # Production
 /build
 /dist
-
+backend/uploads/*.jpg
 # Environment files
 .env
 .env.local

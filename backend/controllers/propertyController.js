@@ -344,17 +344,16 @@ export const getProperties = async (req, res) => {
       }
     }
 
-    // Apply text search if provided
+    // Apply search — regex across title, description, city, state (no text index needed)
     if (search?.trim()) {
-      try {
-        query.$text = { $search: search.trim() };
-      } catch (searchError) {
-        console.error('Text search error:', searchError);
-        return res.status(400).json({
-          message: "Invalid search query",
-          details: "Please check your search terms and try again"
-        });
-      }
+      const regex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { title: regex },
+        { description: regex },
+        { 'location.city': regex },
+        { 'location.state': regex },
+        { type: regex }
+      ];
     }
 
     // Execute database queries with proper error handling

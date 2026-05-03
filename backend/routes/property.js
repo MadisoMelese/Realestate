@@ -38,9 +38,33 @@ const upload = multer({
   }
 });
 
+import Property from "../models/Property.js";
+
 // Property routes
 router.post('/', auth, upload.array('images', 10), propertyController.createProperty);
 router.get('/', propertyController.getProperties);
+
+// Must be before /:id to avoid "featured" being treated as an ID
+router.get('/featured', async (req, res) => {
+  try {
+    const properties = await Property.find({ status: "Available" })
+      .populate("owner", "name")
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    // Sort by likes count descending, take top 6
+    const sorted = properties
+      .sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0))
+      .slice(0, 6);
+
+    res.json({ properties: sorted });
+  } catch (error) {
+    console.error("Featured properties error:", error);
+    res.status(500).json({ message: "Error fetching featured properties" });
+  }
+});
+
 router.get('/:id', propertyController.getPropertyById);
 router.put('/:id', auth, upload.array('images', 10), propertyController.updateProperty);
 router.delete('/:id', auth, propertyController.deleteProperty);
