@@ -12,16 +12,11 @@ const Dashboard = () => {
   const { properties } = useSelector((state) => state.property);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    // Fetch fresh data every time dashboard loads
+    if (!isAuthenticated) { navigate('/login'); return; }
     dispatch(fetchProperties());
     dispatch(fetchUserTransactions());
   }, [isAuthenticated, navigate, dispatch]);
 
-  // user.id comes from login response, user._id comes from /me (getCurrentUser)
   const userId = user?._id || user?.id;
 
   const userProperties = properties?.filter(property => {
@@ -29,123 +24,129 @@ const Dashboard = () => {
     return ownerId?.toString() === userId?.toString();
   }) || [];
 
-  // For buyers: show their saved properties from user.savedProperties
-  const savedPropertyIds = new Set(
-    (user?.savedProperties || []).map(id => id?.toString())
-  );
-  const savedProperties = properties?.filter(p =>
-    savedPropertyIds.has(p._id?.toString())
-  ) || [];
+  const savedPropertyIds = new Set((user?.savedProperties || []).map(id => id?.toString()));
+  const savedProperties = properties?.filter(p => savedPropertyIds.has(p._id?.toString())) || [];
 
   const userTransactions = transactions?.filter(transaction => {
     const buyerId  = transaction.buyer?._id  || transaction.buyer;
     const sellerId = transaction.seller?._id || transaction.seller;
-    return (
-      buyerId?.toString()  === userId?.toString() ||
-      sellerId?.toString() === userId?.toString()
-    );
+    return buyerId?.toString() === userId?.toString() || sellerId?.toString() === userId?.toString();
   }) || [];
 
+  const displayProperties = user?.role === 'seller' ? userProperties : savedProperties;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}!</h1>
-        <p className="mt-2 text-sm text-gray-600">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Header */}
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Welcome, {user?.name}!
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
           Manage your {user?.role === 'seller' ? 'properties and sales' : 'saved properties and purchases'}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Properties Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Properties */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">
             {user?.role === 'seller' ? 'My Listed Properties' : 'Saved Properties'}
           </h2>
-          {(user?.role === 'seller' ? userProperties : savedProperties).length > 0 ? (
-            <div className="space-y-4">
-              {(user?.role === 'seller' ? userProperties : savedProperties).map(property => (
+          {displayProperties.length > 0 ? (
+            <div className="space-y-3">
+              {displayProperties.map(property => (
                 <div
                   key={property._id}
-                  className="border rounded-md p-4 hover:border-primary-500 cursor-pointer"
+                  className="border border-gray-100 rounded-lg p-3 hover:border-primary-400 hover:bg-primary-50 cursor-pointer transition-colors"
                   onClick={() => navigate(`/properties/${property._id}`)}
                 >
-                  <h3 className="font-medium text-gray-900">{property.title}</h3>
-                  <p className="text-sm text-gray-500">${property.price.toLocaleString()}</p>
+                  <h3 className="font-medium text-gray-900 text-sm truncate">{property.title}</h3>
+                  <p className="text-sm text-primary-600 font-semibold mt-0.5">
+                    ${property.price?.toLocaleString()}
+                  </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">
-              {user?.role === 'seller'
-                ? 'You haven\'t listed any properties yet.'
-                : 'You haven\'t saved any properties yet.'}
-            </p>
+            <div className="text-center py-8">
+              <p className="text-gray-400 text-sm">
+                {user?.role === 'seller' ? "You haven't listed any properties yet." : "You haven't saved any properties yet."}
+              </p>
+              <button
+                onClick={() => navigate(user?.role === 'seller' ? '/properties/add' : '/properties')}
+                className="mt-3 text-xs text-primary-600 hover:underline font-medium"
+              >
+                {user?.role === 'seller' ? 'List your first property →' : 'Explore properties →'}
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Transactions Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Transactions</h2>
+        {/* Transactions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Recent Transactions</h2>
           {userTransactions.length > 0 ? (
-            <div className="space-y-4">
-              {userTransactions.map(transaction => (
-                <div
-                  key={transaction._id}
-                  className="border rounded-md p-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {transaction.property.title}
+            <div className="space-y-3">
+              {userTransactions.slice(0, 5).map(transaction => (
+                <div key={transaction._id} className="border border-gray-100 rounded-lg p-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-gray-900 text-sm truncate">
+                        {transaction.property?.title || 'Property'}
                       </h3>
-                      <p className="text-sm text-gray-500">
-                        ${transaction.amount.toLocaleString()}
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        ${transaction.amount?.toLocaleString()}
                       </p>
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        transaction.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : transaction.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                    <span className={`flex-shrink-0 px-2 py-0.5 text-xs rounded-full font-medium ${
+                      transaction.status === 'completed' ? 'bg-green-100 text-green-700'
+                      : transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                      {transaction.status}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-400 mt-1.5">
                     {new Date(transaction.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">No transactions found.</p>
+            <div className="text-center py-8">
+              <p className="text-gray-400 text-sm">No transactions yet.</p>
+            </div>
           )}
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="space-y-3">
             {user?.role === 'seller' && (
               <button
                 onClick={() => navigate('/properties/add')}
-                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="w-full py-3 px-4 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors"
               >
-                List New Property
+                + List New Property
               </button>
             )}
             <button
               onClick={() => navigate('/properties')}
-              className="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="w-full py-3 px-4 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
             >
               Browse Properties
             </button>
             <button
+              onClick={() => navigate('/transactions')}
+              className="w-full py-3 px-4 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
+            >
+              View All Transactions
+            </button>
+            <button
               onClick={() => navigate('/profile')}
-              className="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="w-full py-3 px-4 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors"
             >
               Update Profile
             </button>
