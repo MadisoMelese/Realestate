@@ -64,8 +64,19 @@ export const createProperty = async (req, res) => {
       description,
       type,
       status = 'Available',
-      amenities = []
     } = req.body;
+
+    // Parse amenities — frontend sends as amenities[] (multiple values) or amenities (single string)
+    let amenities = [];
+    if (req.body['amenities[]']) {
+      amenities = Array.isArray(req.body['amenities[]'])
+        ? req.body['amenities[]']
+        : [req.body['amenities[]']];
+    } else if (req.body.amenities) {
+      amenities = Array.isArray(req.body.amenities)
+        ? req.body.amenities
+        : [req.body.amenities];
+    }
 
     // Parse location and features from JSON strings
     let location = {};
