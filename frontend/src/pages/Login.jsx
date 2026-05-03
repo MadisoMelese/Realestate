@@ -51,8 +51,13 @@ const Login = () => {
     }
 
     try {
-      await dispatch(login(formData)).unwrap();
-      navigate('/');
+      const result = await dispatch(login(formData)).unwrap();
+      const role = result.user?.role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setFormErrors({
         submit: err.details || err.message || 'Login failed. Please try again.'

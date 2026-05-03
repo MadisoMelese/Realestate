@@ -28,9 +28,12 @@ import {
   Favorite,
   FavoriteBorder,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookmarkBorder,
+  Bookmark
 } from '@mui/icons-material';
 import { fetchPropertyById, toggleLikeProperty } from '../redux/slices/propertySlice';
+import { toggleSaveProperty } from '../redux/slices/authSlice';
 import { createTransaction } from '../redux/slices/transactionSlice';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -109,6 +112,14 @@ const PropertyDetails = () => {
     (like) => (like._id || like).toString() === user?._id?.toString()
   );
   const isSeller = user?._id?.toString() === currentProperty.owner?._id?.toString();
+
+  const isSaved = Array.isArray(user?.savedProperties) &&
+    user.savedProperties.some(id => id?.toString() === currentProperty._id?.toString());
+
+  const handleSave = () => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    dispatch(toggleSaveProperty(currentProperty._id));
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -202,6 +213,11 @@ const PropertyDetails = () => {
               <IconButton onClick={handleLike} color="primary">
                 {isLiked ? <Favorite /> : <FavoriteBorder />}
               </IconButton>
+              {!isSeller && (
+                <IconButton onClick={handleSave} color="primary" title={isSaved ? 'Unsave' : 'Save'}>
+                  {isSaved ? <Bookmark /> : <BookmarkBorder />}
+                </IconButton>
+              )}
             </Typography>
             <Typography variant="h5" color="primary" gutterBottom>
               ${currentProperty.price.toLocaleString()}

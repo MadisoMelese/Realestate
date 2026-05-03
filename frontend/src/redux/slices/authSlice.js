@@ -124,6 +124,18 @@ export const changePassword = createAsyncThunk(
   }
 );
 
+export const toggleSaveProperty = createAsyncThunk(
+  'auth/toggleSaveProperty',
+  async (propertyId, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`/properties/${propertyId}/save`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to save property' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   user: null,
@@ -225,7 +237,13 @@ const authSlice = createSlice({
       // so we don't need global state changes for them
       .addCase(forgotPassword.rejected, () => {})
       .addCase(verifyOtp.rejected, () => {})
-      .addCase(resetPassword.rejected, () => {});
+      .addCase(resetPassword.rejected, () => {})
+      // Toggle save property — update savedProperties on user
+      .addCase(toggleSaveProperty.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user.savedProperties = action.payload.savedProperties;
+        }
+      });
   }
 });
 

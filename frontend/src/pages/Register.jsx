@@ -65,8 +65,13 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      await dispatch(register(registerData)).unwrap();
-      navigate('/');
+      const result = await dispatch(register(registerData)).unwrap();
+      const role = result.user?.role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setFormErrors({
         submit: err.message || 'Registration failed. Please try again.'
