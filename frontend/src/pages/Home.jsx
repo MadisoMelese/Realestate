@@ -214,7 +214,7 @@ const Home = () => {
             New listings added daily
           </div>
 
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
             Find Your
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-rose-400">
               Dream Home
