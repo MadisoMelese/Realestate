@@ -139,6 +139,11 @@ const AddProperty = () => {
     Object.keys(formData).forEach((key) => {
       if (key === 'location' || key === 'features') {
         formDataToSend.append(key, JSON.stringify(formData[key]));
+      } else if (key === 'amenities') {
+        // Append each amenity individually so the backend receives an array
+        formData.amenities.forEach((amenity) => {
+          formDataToSend.append('amenities[]', amenity);
+        });
       } else if (key !== 'images') {
         formDataToSend.append(key, formData[key]);
       }
