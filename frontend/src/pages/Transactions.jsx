@@ -1,152 +1,121 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Box,
-  Button,
-  Alert,
-  Link
-} from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { fetchUserTransactions, cancelTransaction } from '../redux/slices/transactionSlice';
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'completed':
-      return 'success';
-    case 'pending':
-      return 'warning';
-    case 'cancelled':
-      return 'error';
-    default:
-      return 'default';
-  }
+const statusStyle = {
+  completed: 'bg-green-100 text-green-700',
+  pending:   'bg-yellow-100 text-yellow-700',
+  cancelled: 'bg-red-100 text-red-700',
+  refunded:  'bg-gray-100 text-gray-600',
 };
 
 const Transactions = () => {
   const dispatch = useDispatch();
-  const { transactions, loading, error } = useSelector((state) => state.transaction);
-  const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const { transactions, loading, error } = useSelector(s => s.transaction);
+  const { user } = useSelector(s => s.auth);
 
-  useEffect(() => {
-    dispatch(fetchUserTransactions());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchUserTransactions()); }, [dispatch]);
 
-  const handleCancel = (transactionId) => {
-    if (window.confirm('Are you sure you want to cancel this transaction?')) {
-      dispatch(cancelTransaction(transactionId));
-    }
+  const handleCancel = (id) => {
+    if (window.confirm('Cancel this transaction?')) dispatch(cancelTransaction(id));
   };
 
-  if (loading) return <Typography>Loading...</Typography>;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  const userId = user?._id || user?.id;
+
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-[50vh]">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="p-4 bg-red-50 text-red-700 rounded-xl text-sm">{error}</div>
+    </div>
+  );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>My Transactions</Typography>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Transactions</h1>
 
       {transactions.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="h6" gutterBottom>No transactions found</Typography>
-          <Button
-            component={RouterLink}
-            to="/properties"
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
+        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
+          <p className="text-gray-400 text-lg font-medium mb-2">No transactions yet</p>
+          <p className="text-gray-400 text-sm mb-6">Start by browsing available properties.</p>
+          <button
+            onClick={() => navigate('/properties')}
+            className="px-6 py-3 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700"
           >
             Browse Properties
-          </Button>
-        </Box>
+          </button>
+        </div>
       ) : (
-        <Grid container spacing={3}>
-          {transactions.map((transaction) => (
-            <Grid item xs={12} key={transaction._id}>
-              <Card>
-                <CardContent>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} sm={4}>
-                      <Typography variant="h6" component={RouterLink} to={`/properties/${transaction.property._id}`} sx={{ textDecoration: 'none', color: 'inherit' }}>
-                        {transaction.property.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {transaction.type === 'sale' ? 'Purchase' : 'Rental'}
-                      </Typography>
-                    </Grid>
+        <div className="space-y-4">
+          {transactions.map(tx => {
+            const isBuyer = (tx.buyer?._id || tx.buyer)?.toString() === userId?.toString();
+            return (
+              <div key={tx._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                {/* Top row: title + status */}
+                <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
+                  <div className="min-w-0">
+                    <Link
+                      to={`/properties/${tx.property?._id}`}
+                      className="text-base font-bold text-gray-900 hover:text-primary-600 transition-colors line-clamp-1"
+                    >
+                      {tx.property?.title || 'Property'}
+                    </Link>
+                    <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                      {tx.type === 'sale' ? 'Purchase' : 'Rental'} · {new Date(tx.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusStyle[tx.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {tx.status}
+                    </span>
+                    {tx.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancel(tx._id)}
+                        className="px-3 py-1 text-xs font-semibold text-red-600 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-                    <Grid item xs={12} sm={3}>
-                      <Typography variant="body1">
-                        Amount: ${transaction.amount.toLocaleString()}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-
-                    <Grid item xs={12} sm={3}>
-                      <Typography variant="body1">
-                        {user._id === transaction.buyer._id ? 'Seller' : 'Buyer'}:{' '}
-                        {user._id === transaction.buyer._id
-                          ? transaction.seller.name
-                          : transaction.buyer.name}
-                      </Typography>
-                      {transaction.paymentInfo.paymentMethod && (
-                        <Typography variant="body2" color="text.secondary">
-                          Paid via {transaction.paymentInfo.paymentMethod}
-                        </Typography>
-                      )}
-                    </Grid>
-
-                    <Grid item xs={12} sm={2}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                        <Chip
-                          label={transaction.status}
-                          color={getStatusColor(transaction.status)}
-                          sx={{ mr: transaction.status === 'pending' ? 1 : 0 }}
-                        />
-                        {transaction.status === 'pending' && (
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => handleCancel(transaction._id)}
-                          >
-                            Cancel
-                          </Button>
-                        )}
-                      </Box>
-                    </Grid>
-                  </Grid>
-
-                  {transaction.contractDetails?.terms && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Contract Terms: {transaction.contractDetails.terms}
-                      </Typography>
-                      {transaction.contractDetails.documents?.map((doc, index) => (
-                        <Link
-                          key={index}
-                          href={doc}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{ display: 'block', mt: 1 }}
-                        >
-                          View Document {index + 1}
-                        </Link>
-                      ))}
-                    </Box>
+                {/* Details grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Amount</p>
+                    <p className="font-bold text-gray-900">${tx.amount?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">{isBuyer ? 'Seller' : 'Buyer'}</p>
+                    <p className="font-medium text-gray-700 truncate">
+                      {isBuyer ? (tx.seller?.name || '—') : (tx.buyer?.name || '—')}
+                    </p>
+                  </div>
+                  {tx.paymentInfo?.paymentMethod && (
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Payment</p>
+                      <p className="font-medium text-gray-700 capitalize">{tx.paymentInfo.paymentMethod}</p>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                </div>
+
+                {tx.contractDetails?.terms && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">{tx.contractDetails.terms}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
-    </Container>
+    </div>
   );
 };
 
