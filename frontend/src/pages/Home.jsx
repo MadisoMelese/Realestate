@@ -173,9 +173,9 @@ const Home = () => {
   ];
 
   const testimonials = [
-    { name: 'Sarah M.', role: 'Home Buyer', text: 'Found my dream apartment in just 3 days. The process was incredibly smooth!', avatar: 'https://i.pravatar.cc/60?img=47' },
-    { name: 'James K.', role: 'Property Seller', text: 'Listed my property and had 5 serious inquiries within the first week. Amazing platform!', avatar: 'https://i.pravatar.cc/60?img=12' },
-    { name: 'Amina T.', role: 'Investor', text: 'The market insights and verified listings gave me the confidence to invest. Highly recommend.', avatar: 'https://i.pravatar.cc/60?img=32' },
+    { name: 'Sara M.', role: 'Home Buyer', text: 'Found my dream apartment in just 3 days. The process was incredibly smooth!', avatar: 'https://i.pravatar.cc/60?img=47' },
+    { name: 'Alemayehu K.', role: 'Property Seller', text: 'Listed my property and had 5 serious inquiries within the first week. Amazing platform!', avatar: 'https://i.pravatar.cc/60?img=12' },
+    { name: 'Amanuel T.', role: 'Investor', text: 'The market insights and verified listings gave me the confidence to invest. Highly recommend.', avatar: 'https://i.pravatar.cc/60?img=32' },
   ];
 
   return (
@@ -302,14 +302,22 @@ const Home = () => {
           {categories.map(cat => (
             <button
               key={cat.type}
+              type="button"
+              aria-label={`Browse ${cat.label}`}
               onClick={() => navigate(`/properties?search=${cat.type}`)}
-              className="relative rounded-2xl overflow-hidden h-44 group shadow-md hover:shadow-xl transition-all"
+              className="relative rounded-2xl overflow-hidden h-44 group shadow-md hover:shadow-xl transition-all focus:outline-none focus:ring-4 focus:ring-primary-300"
             >
-              <img src={cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-              <div className={`absolute inset-0 bg-gradient-to-t ${cat.bg} opacity-70 group-hover:opacity-80 transition-opacity`} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-2">
-                <span className="text-3xl">{cat.icon}</span>
-                <span className="font-bold text-lg tracking-wide">{cat.label}</span>
+              <img
+                loading="lazy"
+                src={cat.img}
+                alt={cat.label}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 brightness-95"
+              />
+              <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors pointer-events-none" />
+              <div className={`absolute inset-0 bg-gradient-to-t ${cat.bg} opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none`} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-2 drop-shadow-lg pointer-events-none">
+                <span aria-hidden="true" className="text-4xl">{cat.icon}</span>
+                <span className="font-extrabold text-xl tracking-wide">{cat.label}</span>
               </div>
             </button>
           ))}

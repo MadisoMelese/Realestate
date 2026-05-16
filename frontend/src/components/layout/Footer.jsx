@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">RaeLestate</h3>
+            <h3 className="text-xl font-bold">Hussein Real Estate</h3>
             <p className="text-primary-100">Your trusted partner in finding the perfect home.</p>
             <div className="flex space-x-4">
               <a href="#" className="text-primary-100 hover:text-white transition-colors">
@@ -64,11 +64,11 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-2 text-primary-100">
                 <Phone fontSize="small" />
-                <span>+1 (555) 123-4567</span>
+                <span>+251912345678</span>
               </li>
               <li className="flex items-center space-x-2 text-primary-100">
                 <LocationOn fontSize="small" />
-                <span>123 Real Estate Ave, City, State 12345</span>
+                <span>Hssein Real Estate St, Hawasa, Ethiopia</span>
               </li>
             </ul>
           </div>
@@ -95,7 +95,7 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-primary-700 text-center text-primary-100">
-          <p>&copy; {new Date().getFullYear()} RaeLestate. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Hussein Real Estate. All rights reserved.</p>
         </div>
       </div>
     </footer>

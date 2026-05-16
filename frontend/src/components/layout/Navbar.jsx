@@ -71,7 +71,7 @@ const Navbar = () => {
           {/* Logo */}
           <RouterLink to="/" className="flex items-center gap-2 flex-shrink-0">
             <HomeIcon className="text-primary-600" style={{ fontSize: 28 }} />
-            <span className="text-lg font-bold text-gray-900 hidden sm:block">Real Estate</span>
+            <span className="text-lg font-bold text-gray-900 hidden sm:block">Hussein Real Estate</span>
           </RouterLink>
 
           {/* Desktop nav links */}
