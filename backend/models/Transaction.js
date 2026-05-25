@@ -27,13 +27,28 @@ const TransactionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["pending", "completed", "cancelled", "refunded"],
+    enum: ["pending", "awaiting_confirmation", "completed", "cancelled", "refunded"],
     default: "pending"
+  },
+  sellerConfirmation: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
+  },
+  rejectionReason: {
+    type: String,
+    default: ""
   },
   paymentInfo: {
     stripePaymentId: String,
     paymentMethod: String,
-    paymentDate: Date
+    paymentDate: Date,
+    receiptUrl: String,          // uploaded bank receipt file path
+    receiptUploadedAt: Date,
+    confirmedByBuyer: {
+      type: Boolean,
+      default: false
+    }
   },
   contractDetails: {
     startDate: Date,

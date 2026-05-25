@@ -6,11 +6,14 @@ import {
   fetchAdminUsers,
   fetchAdminProperties,
   fetchAdminTransactions,
+  fetchAdminActivity,
   updateUserRole,
   deleteUser,
   deleteAdminProperty,
 } from '../redux/slices/adminSlice';
 import { getImageUrl } from '../utils/imageUrl';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const statusColors = {
   completed: 'bg-green-100 text-green-800',
@@ -69,7 +72,7 @@ const OverviewTab = ({ stats }) => {
         <StatCard label="Total Users"       value={stats.totalUsers}       sub={`${roleMap.buyer || 0} buyers · ${roleMap.seller || 0} sellers`} />
         <StatCard label="Total Properties"  value={stats.totalProperties}  sub={`${statusMap.Available || 0} available`} />
         <StatCard label="Total Transactions" value={stats.totalTransactions} sub={`${stats.pendingTransactions} pending`} />
-        <StatCard label="Total Revenue"     value={`$${(stats.totalRevenue || 0).toLocaleString()}`} color="text-green-600" sub="from completed sales" />
+        <StatCard label="Total Revenue"     value={`ETB ${(stats.totalRevenue || 0).toLocaleString()}`} color="text-green-600" sub="from completed sales" />
       </div>
 
       {/* Transaction breakdown */}
@@ -99,7 +102,7 @@ const OverviewTab = ({ stats }) => {
                   <td className="px-4 py-3 text-sm text-gray-900">{tx.property?.title || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{tx.buyer?.name || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{tx.seller?.name || '—'}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">${(tx.amount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">ETB {(tx.amount || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 capitalize">{tx.type}</td>
                   <td className="px-4 py-3"><Badge label={tx.status} colorClass={statusColors[tx.status] || 'bg-gray-100 text-gray-700'} /></td>
                   <td className="px-4 py-3 text-sm text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
@@ -367,7 +370,7 @@ const PropertiesTab = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{p.owner?.name || '—'}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">${(p.price || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">ETB {(p.price || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 capitalize">{p.type}</td>
                   <td className="px-4 py-3"><Badge label={p.status} colorClass={propStatusColors[p.status] || 'bg-gray-100 text-gray-700'} /></td>
                   <td className="px-4 py-3 text-sm text-gray-500">{new Date(p.createdAt).toLocaleDateString()}</td>
@@ -416,12 +419,52 @@ const TransactionsTab = () => {
   const dispatch = useDispatch();
   const { transactions, transactionTotal, transactionPage, transactionTotalPages, loading } = useSelector(s => s.admin);
 
-  useEffect(() => { dispatch(fetchAdminTransactions({ page: 1 })); }, [dispatch]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const load = useCallback((page = 1, q = search, st = statusFilter) => {
+    dispatch(fetchAdminTransactions({ page, search: q, status: st }));
+  }, [dispatch, search, statusFilter]);
+
+  useEffect(() => { load(1); }, []);
+
+  const handleSearch = (e) => { e.preventDefault(); load(1, search, statusFilter); };
+  const handleStatusChange = (st) => { setStatusFilter(st); load(1, search, st); };
+
+  const STATUS_FILTERS = ['all', 'pending', 'completed', 'cancelled', 'refunded'];
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <p className="text-sm text-gray-500">{transactionTotal} transactions total</p>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
+        <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search buyer, seller, property…"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 flex-1 sm:w-64"
+          />
+          <button type="submit" className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 flex-shrink-0">
+            Search
+          </button>
+        </form>
+        <div className="flex gap-2 flex-wrap">
+          {STATUS_FILTERS.map(st => (
+            <button
+              key={st}
+              onClick={() => handleStatusChange(st)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors capitalize ${
+                statusFilter === st
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-gray-500 flex-shrink-0">{transactionTotal} total</p>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -429,25 +472,50 @@ const TransactionsTab = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Property', 'Buyer', 'Seller', 'Amount', 'Type', 'Status', 'Date'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                {['Property', 'Buyer', 'Seller', 'Amount', 'Type', 'Payment', 'Receipt', 'Status', 'Date'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading && transactions.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
               ) : transactions.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No transactions found.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No transactions found.</td></tr>
               ) : transactions.map(tx => (
                 <tr key={tx._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">{tx.property?.title || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{tx.buyer?.name || '—'}<br /><span className="text-xs text-gray-400">{tx.buyer?.email}</span></td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{tx.seller?.name || '—'}<br /><span className="text-xs text-gray-400">{tx.seller?.email}</span></td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">${(tx.amount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 max-w-[140px] truncate">{tx.property?.title || '—'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <p className="text-gray-900 font-medium">{tx.buyer?.name || '—'}</p>
+                    <p className="text-xs text-gray-400">{tx.buyer?.email}</p>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <p className="text-gray-900 font-medium">{tx.seller?.name || '—'}</p>
+                    <p className="text-xs text-gray-400">{tx.seller?.email}</p>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">ETB {(tx.amount || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 capitalize">{tx.type}</td>
-                  <td className="px-4 py-3"><Badge label={tx.status} colorClass={statusColors[tx.status] || 'bg-gray-100 text-gray-700'} /></td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 capitalize">
+                    {tx.paymentInfo?.paymentMethod
+                      ? tx.paymentInfo.paymentMethod.replace('_', ' ')
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {tx.paymentInfo?.receiptUrl ? (
+                      <a
+                        href={`${API_BASE}${tx.paymentInfo.receiptUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:underline font-medium text-xs"
+                      >
+                        View ↗
+                      </a>
+                    ) : <span className="text-gray-300 text-xs">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge label={tx.status} colorClass={statusColors[tx.status] || 'bg-gray-100 text-gray-700'} />
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{new Date(tx.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -456,11 +524,11 @@ const TransactionsTab = () => {
       </div>
 
       {transactionTotalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 flex-wrap">
           {Array.from({ length: transactionTotalPages }, (_, i) => i + 1).map(p => (
             <button
               key={p}
-              onClick={() => dispatch(fetchAdminTransactions({ page: p }))}
+              onClick={() => load(p)}
               className={`px-3 py-1 text-sm rounded-md border ${p === transactionPage ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
             >
               {p}
@@ -472,8 +540,130 @@ const TransactionsTab = () => {
   );
 };
 
+// ─── Tab: Activity ────────────────────────────────────────────────────────────
+const activityConfig = {
+  user_registered:      { icon: '👤', color: 'bg-blue-100 text-blue-700',   label: 'User Registered' },
+  property_listed:      { icon: '🏠', color: 'bg-green-100 text-green-700', label: 'Property Listed' },
+  transaction_pending:  { icon: '⏳', color: 'bg-yellow-100 text-yellow-700', label: 'Transaction Started' },
+  transaction_completed:{ icon: '✅', color: 'bg-green-100 text-green-700', label: 'Transaction Completed' },
+  transaction_cancelled:{ icon: '❌', color: 'bg-red-100 text-red-700',     label: 'Transaction Cancelled' },
+  transaction_refunded: { icon: '↩️', color: 'bg-gray-100 text-gray-700',   label: 'Transaction Refunded' },
+};
+
+const ActivityTab = () => {
+  const dispatch = useDispatch();
+  const { activity, activityLoading } = useSelector(s => s.admin);
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  useEffect(() => { dispatch(fetchAdminActivity({ limit: 100 })); }, [dispatch]);
+
+  const TYPE_FILTERS = [
+    { value: 'all',          label: 'All' },
+    { value: 'user',         label: 'Users' },
+    { value: 'property',     label: 'Properties' },
+    { value: 'transaction',  label: 'Transactions' },
+  ];
+
+  const filtered = typeFilter === 'all'
+    ? activity
+    : activity.filter(e => e.type.startsWith(typeFilter));
+
+  const formatTime = (dt) => {
+    const d = new Date(dt);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return d.toLocaleDateString();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex gap-2 flex-wrap">
+          {TYPE_FILTERS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setTypeFilter(f.value)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                typeFilter === f.value
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-500">{filtered.length} events</p>
+          <button
+            onClick={() => dispatch(fetchAdminActivity({ limit: 100 }))}
+            className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+          >
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      {activityLoading ? (
+        <div className="flex justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">No activity yet.</div>
+      ) : (
+        <div className="bg-white rounded-lg shadow divide-y divide-gray-100">
+          {filtered.map(event => {
+            const cfg = activityConfig[event.type] || { icon: '•', color: 'bg-gray-100 text-gray-600', label: event.type };
+            return (
+              <div key={event._id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+                {/* Icon badge */}
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-base ${cfg.color}`}>
+                  {cfg.icon}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
+                      {cfg.label}
+                    </span>
+                    {event.meta?.receiptUrl && (
+                      <a
+                        href={`${API_BASE}${event.meta.receiptUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary-600 hover:underline font-medium"
+                      >
+                        View Receipt ↗
+                      </a>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-gray-800 truncate">{event.detail}</p>
+                  {event.meta?.paymentMethod && (
+                    <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                      Payment: {event.meta.paymentMethod.replace('_', ' ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Time */}
+                <span className="flex-shrink-0 text-xs text-gray-400 whitespace-nowrap mt-1">
+                  {formatTime(event.createdAt)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main AdminDashboard ──────────────────────────────────────────────────────
-const TABS = ['Overview', 'Users', 'Properties', 'Transactions'];
+const TABS = ['Overview', 'Users', 'Properties', 'Transactions', 'Activity'];
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -527,6 +717,7 @@ const AdminDashboard = () => {
       {activeTab === 'Users'        && <UsersTab />}
       {activeTab === 'Properties'   && <PropertiesTab />}
       {activeTab === 'Transactions' && <TransactionsTab />}
+      {activeTab === 'Activity'     && <ActivityTab />}
     </div>
   );
 };

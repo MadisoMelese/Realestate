@@ -105,7 +105,7 @@ router.get('/me', auth, async (req, res) => {
 // @access  Private
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, phoneNumber, profileImage } = req.body;
+    const { name, phoneNumber, profileImage, bankAccount } = req.body;
     const user = await User.findById(req.user.userId);
 
     if (!user) {
@@ -115,6 +115,7 @@ router.put('/profile', auth, async (req, res) => {
     if (name) user.name = name;
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
     if (profileImage !== undefined) user.profileImage = profileImage;
+    if (bankAccount !== undefined) user.bankAccount = bankAccount;
 
     await user.save();
     const userObj = user.toObject();

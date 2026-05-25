@@ -36,6 +36,13 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Property"
   }],
+  bankAccount: {
+    bankName: { type: String, trim: true },
+    accountHolderName: { type: String, trim: true },
+    accountNumber: { type: String, trim: true },
+    routingNumber: { type: String, trim: true },
+    instructions: { type: String, trim: true }
+  },
   otpHash: {
     type: String,
   },

@@ -16,6 +16,19 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Bank account state
+  const [bankData, setBankData] = useState({
+    bankName: '',
+    accountHolderName: '',
+    accountNumber: '',
+    routingNumber: '',
+    instructions: '',
+  });
+  const [isBankEditing, setIsBankEditing] = useState(false);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankError, setBankError] = useState('');
+  const [bankSuccess, setBankSuccess] = useState('');
+
   // Image upload state
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState('');
@@ -39,6 +52,13 @@ const Profile = () => {
       setFormData({
         name: user.name || '',
         phoneNumber: user.phoneNumber || '',
+      });
+      setBankData({
+        bankName: user.bankAccount?.bankName || '',
+        accountHolderName: user.bankAccount?.accountHolderName || '',
+        accountNumber: user.bankAccount?.accountNumber || '',
+        routingNumber: user.bankAccount?.routingNumber || '',
+        instructions: user.bankAccount?.instructions || '',
       });
     }
   }, [user]);
@@ -73,6 +93,41 @@ const Profile = () => {
     setIsEditing(false);
     setError('');
     setSuccess('');
+  };
+
+  // ── Bank account handlers ─────────────────────────────────────────────────
+  const handleBankChange = (e) => {
+    const { name, value } = e.target;
+    setBankData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBankSubmit = async (e) => {
+    e.preventDefault();
+    setBankError('');
+    setBankSuccess('');
+    setBankLoading(true);
+    try {
+      await dispatch(updateProfile({ bankAccount: bankData })).unwrap();
+      setBankSuccess('Bank account saved successfully.');
+      setIsBankEditing(false);
+    } catch (err) {
+      setBankError(err?.message || 'Failed to save bank account.');
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  const handleBankCancel = () => {
+    setBankData({
+      bankName: user?.bankAccount?.bankName || '',
+      accountHolderName: user?.bankAccount?.accountHolderName || '',
+      accountNumber: user?.bankAccount?.accountNumber || '',
+      routingNumber: user?.bankAccount?.routingNumber || '',
+      instructions: user?.bankAccount?.instructions || '',
+    });
+    setIsBankEditing(false);
+    setBankError('');
+    setBankSuccess('');
   };
 
   // ── Change password handler ───────────────────────────────────────────────
@@ -339,6 +394,135 @@ const Profile = () => {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* ── Bank Account section (sellers) ── */}
+        <div className="mt-8 border-t pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Bank Account</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Buyers will see this info when making a payment for your property.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => isBankEditing ? handleBankCancel() : setIsBankEditing(true)}
+              className="px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+            >
+              {isBankEditing ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+
+          {bankError && <div className="mb-3 p-3 bg-red-50 text-red-700 rounded-md text-sm">{bankError}</div>}
+          {bankSuccess && !isBankEditing && <div className="mb-3 p-3 bg-green-50 text-green-700 rounded-md text-sm">{bankSuccess}</div>}
+
+          {isBankEditing ? (
+            <form onSubmit={handleBankSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">Bank Name</label>
+                  <input
+                    type="text"
+                    name="bankName"
+                    id="bankName"
+                    value={bankData.bankName}
+                    onChange={handleBankChange}
+                    placeholder="e.g. Commercial Bank of Ethiopia"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="accountHolderName" className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                  <input
+                    type="text"
+                    name="accountHolderName"
+                    id="accountHolderName"
+                    value={bankData.accountHolderName}
+                    onChange={handleBankChange}
+                    placeholder="Full name on account"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">Account Number</label>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    id="accountNumber"
+                    value={bankData.accountNumber}
+                    onChange={handleBankChange}
+                    placeholder="Your account number"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="routingNumber" className="block text-sm font-medium text-gray-700">Routing / Branch Code <span className="text-gray-400">(optional)</span></label>
+                  <input
+                    type="text"
+                    name="routingNumber"
+                    id="routingNumber"
+                    value={bankData.routingNumber}
+                    onChange={handleBankChange}
+                    placeholder="Branch or routing code"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="instructions" className="block text-sm font-medium text-gray-700">Transfer Instructions <span className="text-gray-400">(optional)</span></label>
+                <textarea
+                  name="instructions"
+                  id="instructions"
+                  rows={2}
+                  value={bankData.instructions}
+                  onChange={handleBankChange}
+                  placeholder="e.g. Use property title as reference"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={bankLoading}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bankLoading ? 'Saving...' : 'Save Bank Account'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+              {user?.bankAccount?.bankName ? (
+                <>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Bank Name</p>
+                    <p className="mt-0.5 text-gray-900">{user.bankAccount.bankName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Account Holder</p>
+                    <p className="mt-0.5 text-gray-900">{user.bankAccount.accountHolderName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Account Number</p>
+                    <p className="mt-0.5 text-gray-900 font-mono">{user.bankAccount.accountNumber}</p>
+                  </div>
+                  {user.bankAccount.routingNumber && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Routing / Branch Code</p>
+                      <p className="mt-0.5 text-gray-900 font-mono">{user.bankAccount.routingNumber}</p>
+                    </div>
+                  )}
+                  {user.bankAccount.instructions && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-medium text-gray-500">Instructions</p>
+                      <p className="mt-0.5 text-gray-700">{user.bankAccount.instructions}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-400 sm:col-span-2">No bank account added yet. Click Edit to add your details.</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Change Password section ── */}

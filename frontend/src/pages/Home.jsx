@@ -73,7 +73,7 @@ const PropertyCard = ({ property, currentUserId }) => {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-xl font-extrabold text-primary-600">
-            ${property.price?.toLocaleString()}
+            ETB {property.price?.toLocaleString()}
           </span>
           <span className="text-xs text-gray-400">
             {property.status === 'Available' ? 'For Sale / Rent' : property.status}

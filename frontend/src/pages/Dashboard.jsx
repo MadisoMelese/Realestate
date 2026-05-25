@@ -63,7 +63,7 @@ const Dashboard = () => {
                 >
                   <h3 className="font-medium text-gray-900 text-sm truncate">{property.title}</h3>
                   <p className="text-sm text-primary-600 font-semibold mt-0.5">
-                    ${property.price?.toLocaleString()}
+                    ETB {property.price?.toLocaleString()}
                   </p>
                 </div>
               ))}
@@ -96,7 +96,7 @@ const Dashboard = () => {
                         {transaction.property?.title || 'Property'}
                       </h3>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        ${transaction.amount?.toLocaleString()}
+                        ETB {transaction.amount?.toLocaleString()}
                       </p>
                     </div>
                     <span className={`flex-shrink-0 px-2 py-0.5 text-xs rounded-full font-medium ${

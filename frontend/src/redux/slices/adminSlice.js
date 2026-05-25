@@ -75,12 +75,24 @@ export const deleteAdminProperty = createAsyncThunk(
 
 export const fetchAdminTransactions = createAsyncThunk(
   'admin/fetchTransactions',
-  async ({ page = 1 } = {}, { rejectWithValue }) => {
+  async ({ page = 1, status = '', search = '' } = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/admin/transactions', { params: { page, limit: 20 } });
+      const response = await axios.get('/admin/transactions', { params: { page, limit: 20, status, search } });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch transactions' });
+    }
+  }
+);
+
+export const fetchAdminActivity = createAsyncThunk(
+  'admin/fetchActivity',
+  async ({ limit = 50 } = {}, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/admin/activity', { params: { limit } });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch activity' });
     }
   }
 );
@@ -101,6 +113,8 @@ const adminSlice = createSlice({
     transactionTotal: 0,
     transactionPage: 1,
     transactionTotalPages: 1,
+    activity: [],
+    activityLoading: false,
     loading: false,
     error: null,
   },
@@ -168,7 +182,17 @@ const adminSlice = createSlice({
         state.transactionPage = action.payload.page;
         state.transactionTotalPages = action.payload.totalPages;
       })
-      .addCase(fetchAdminTransactions.rejected, rejected);
+      .addCase(fetchAdminTransactions.rejected, rejected)
+
+      .addCase(fetchAdminActivity.pending, (state) => { state.activityLoading = true; })
+      .addCase(fetchAdminActivity.fulfilled, (state, action) => {
+        state.activityLoading = false;
+        state.activity = action.payload.events;
+      })
+      .addCase(fetchAdminActivity.rejected, (state, action) => {
+        state.activityLoading = false;
+        state.error = action.payload?.message || 'Failed to fetch activity';
+      });
   },
 });
 

@@ -225,28 +225,155 @@ router.delete("/admin/properties/:id", auth, authorize("admin"), async (req, res
   }
 });
 
-// GET /admin/transactions — all transactions with pagination
+// GET /admin/transactions — all transactions with pagination + status filter
 router.get("/admin/transactions", auth, authorize("admin"), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const status = req.query.status?.trim();
+    const search = req.query.search?.trim();
 
-    const [transactions, total] = await Promise.all([
-      Transaction.find()
-        .populate("property", "title price images")
-        .populate("buyer", "name email")
-        .populate("seller", "name email")
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-      Transaction.countDocuments()
-    ]);
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+
+    let transactions, total;
+
+    if (search) {
+      // Search requires a lookup — use aggregation
+      const pipeline = [
+        {
+          $lookup: {
+            from: 'users', localField: 'buyer', foreignField: '_id', as: 'buyerData'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users', localField: 'seller', foreignField: '_id', as: 'sellerData'
+          }
+        },
+        {
+          $lookup: {
+            from: 'properties', localField: 'property', foreignField: '_id', as: 'propertyData'
+          }
+        },
+        {
+          $match: {
+            ...query,
+            $or: [
+              { 'buyerData.name':  { $regex: search, $options: 'i' } },
+              { 'buyerData.email': { $regex: search, $options: 'i' } },
+              { 'sellerData.name': { $regex: search, $options: 'i' } },
+              { 'propertyData.title': { $regex: search, $options: 'i' } },
+            ]
+          }
+        },
+        { $sort: { createdAt: -1 } },
+      ];
+
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const [countResult, rows] = await Promise.all([
+        Transaction.aggregate(countPipeline),
+        Transaction.aggregate([
+          ...pipeline,
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+        ])
+      ]);
+
+      total = countResult[0]?.total || 0;
+      // Re-populate via mongoose for consistent shape
+      transactions = await Transaction.populate(rows, [
+        { path: 'property', select: 'title price images' },
+        { path: 'buyer',    select: 'name email' },
+        { path: 'seller',   select: 'name email' },
+      ]);
+    } else {
+      [transactions, total] = await Promise.all([
+        Transaction.find(query)
+          .populate("property", "title price images")
+          .populate("buyer", "name email")
+          .populate("seller", "name email")
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+        Transaction.countDocuments(query)
+      ]);
+    }
 
     res.json({ transactions, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     console.error("Admin get transactions error:", error);
     res.status(500).json({ message: "Error fetching transactions" });
+  }
+});
+
+// GET /admin/activity — unified chronological activity feed
+router.get("/admin/activity", auth, authorize("admin"), async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+
+    const [recentUsers, recentProperties, recentTransactions] = await Promise.all([
+      User.find()
+        .select("name email role createdAt profileImage")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean(),
+      Property.find()
+        .populate("owner", "name email")
+        .select("title price type status location createdAt owner images")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean(),
+      Transaction.find()
+        .populate("property", "title price")
+        .populate("buyer", "name email")
+        .populate("seller", "name email")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const events = [
+      ...recentUsers.map(u => ({
+        _id: `user-${u._id}`,
+        type: 'user_registered',
+        label: `New user registered`,
+        detail: `${u.name} (${u.email}) joined as ${u.role}`,
+        avatar: u.profileImage || null,
+        meta: { userId: u._id, role: u.role },
+        createdAt: u.createdAt,
+      })),
+      ...recentProperties.map(p => ({
+        _id: `prop-${p._id}`,
+        type: 'property_listed',
+        label: `Property listed`,
+        detail: `"${p.title}" listed by ${p.owner?.name || 'unknown'} for ETB ${(p.price || 0).toLocaleString()}`,
+        meta: { propertyId: p._id, status: p.status, type: p.type },
+        createdAt: p.createdAt,
+      })),
+      ...recentTransactions.map(tx => ({
+        _id: `tx-${tx._id}`,
+        type: `transaction_${tx.status}`,
+        label: `Transaction ${tx.status}`,
+        detail: `${tx.buyer?.name || '?'} → ${tx.property?.title || '?'} (ETB ${(tx.amount || 0).toLocaleString()}) — ${tx.type}`,
+        meta: {
+          transactionId: tx._id,
+          status: tx.status,
+          receiptUrl: tx.paymentInfo?.receiptUrl || null,
+          paymentMethod: tx.paymentInfo?.paymentMethod || null,
+        },
+        createdAt: tx.createdAt,
+      })),
+    ];
+
+    // Sort all events newest first and return top `limit`
+    events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ events: events.slice(0, limit) });
+  } catch (error) {
+    console.error("Admin activity error:", error);
+    res.status(500).json({ message: "Error fetching activity" });
   }
 });
 

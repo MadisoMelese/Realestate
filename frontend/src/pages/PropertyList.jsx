@@ -147,7 +147,7 @@ const PropertyList = () => {
                 </div>
                 <div className="flex justify-between items-center pt-1">
                   <span className="text-primary-600 font-bold text-lg">
-                    ${property.price?.toLocaleString() || 'On request'}
+                    ETB {property.price?.toLocaleString() || 'On request'}
                   </span>
                   <button
                     onClick={() => navigate(`/properties/${property._id}`)}

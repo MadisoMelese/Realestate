@@ -251,12 +251,17 @@ export const getCurrentUser = async (req, res) => {
 // Update user profile
 export const updateProfile = async (req, res) => {
   try {
-    const { name, phoneNumber, profileImage } = req.body;
+    const { name, phoneNumber, profileImage, bankAccount } = req.body;
     const userId = req.user.userId;
+
+    const updateFields = { name, phoneNumber, profileImage };
+    if (bankAccount !== undefined) {
+      updateFields.bankAccount = bankAccount;
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { name, phoneNumber, profileImage },
+      updateFields,
       { new: true }
     ).select("-password");
 
